@@ -21,21 +21,16 @@ ALERT_IMAGE = "../Data/alert_state.png"
 WSU_LOGO = "Arpa_demo_nodes/WSU_Logo.png"
 SCREENSHOT = "Arpa_demo_nodes/RAS_Screenshot.png"
 
-GA1_IMAGE = "Arpa_demo_nodes/Node1.PNG"
-SA1_IMAGE = "Arpa_demo_nodes/Node2.PNG"
-SA2_IMAGE = "Arpa_demo_nodes/Node3.PNG"
+GA1_IMAGE = "Arpa_demo_nodes/Slide1.PNG"
+SA1_IMAGE = "Arpa_demo_nodes/Slide2.PNG"
+SA2_IMAGE = "Arpa_demo_nodes/Slide3.PNG"
+GA1_FAIL = "Arpa_demo_nodes/Slide4.PNG"
+SA1_FAIL = "Arpa_demo_nodes/Slide5.PNG"
+SA2_FAIL = "Arpa_demo_nodes/Slide6.PNG"
 
-GA1_NORMAL = "Arpa_demo_nodes/Slide1.PNG"
-GA1_ALERT = "Arpa_demo_nodes/Slide2.PNG"
-GA1_STABLE = "Arpa_demo_nodes/Slide3.PNG"
-SA1_NORMAL = "Arpa_demo_nodes/Slide4.PNG"
-SA1_ALERT = "Arpa_demo_nodes/Slide5.PNG"
-SA1_STABLE = "Arpa_demo_nodes/Slide6.PNG"
-SA2_NORMAL = "Arpa_demo_nodes/Slide7.PNG"
-SA2_ALERT = "Arpa_demo_nodes/Slide8.PNG"
-SA2_STABLE = "Arpa_demo_nodes/Slide9.PNG"
 
-LINE_DIAGRAM = "Arpa_demo_nodes/Normal_Snap.png"
+
+LINE_DIAGRAM = "Arpa_demo_nodes/Line_Diagram.png"
 
 PLOT_SIZE = 5000
 TIMEOUT = 5
@@ -223,6 +218,8 @@ class SpeedButton(QtGui.QWidget):
 class BBInfo(QtGui.QWidget):
     def __init__(self, parent=None):
         super(BBInfo, self).__init__(parent=parent)
+
+        self.isRunning = True
         
         self.label1text = ""
         self.label2text = ""
@@ -244,27 +241,32 @@ class BBInfo(QtGui.QWidget):
         self.layout.addWidget(self.label3)
 
     def update(self, text):
-        self.label1text = self.label2text
-        self.label2text = self.label3text
-        self.label3text = text
+        if self.isRunning:
+            self.label1text = self.label2text
+            self.label2text = self.label3text
+            self.label3text = text
 
-        self.label1.setText(self.label1text)
-        self.label2.setText(self.label2text)
-        self.label3.setText(self.label3text)
+            self.label1.setText(self.label1text)
+            self.label2.setText(self.label2text)
+            self.label3.setText(self.label3text)
 
 
     def updateRed(self):
-        self.label3.setStyleSheet("QLabel { color : red; font-size:30px}")
+        if self.isRunning:
+            self.label3.setStyleSheet("QLabel { color : red; font-size:30px}")
 
     def updateGreen(self):
-        self.label3.setStyleSheet("QLabel { color : green; font-size:30px}")
+        if self.isRunning:
+            self.label3.setStyleSheet("QLabel { color : green; font-size:30px}")
 
 
 
    
 class SystemState(QtGui.QWidget):
-    def __init__(self, image, parent=None):
+    def __init__(self, image, node_id = 0, parent=None):
         super(SystemState, self).__init__(parent=parent)
+        self.node_id = node_id
+
         self.layout = QtGui.QHBoxLayout(self)
 
         self.image = QtGui.QPixmap(image).scaledToHeight(150)
@@ -272,11 +274,23 @@ class SystemState(QtGui.QWidget):
         self.imageLabel.setPixmap(self.image)
         self.bbinfo = BBInfo()
 
+        self.failureButton = QtGui.QPushButton(self)
+        self.failureButton.setText("Shut Down")
+
+        self.layout.addWidget(self.failureButton)
         self.layout.addWidget(self.imageLabel)
         self.layout.addWidget(self.bbinfo)
 
     def updateText(self, text):
         self.bbinfo.update(text)
+
+    def detectFailure(self, node_id):
+        self.updateText("Node " + str(node_id) + " Failure\nDetected, starting\nbackup role")
+
+    def setImage(self, image):
+        self.image = QtGui.QPixmap(image).scaledToHeight(150)
+        self.imageLabel.setPixmap(self.image)
+
         
 class SystemStateWidget(QtGui.QWidget):
     def __init__(self, parent=None):
@@ -290,9 +304,13 @@ class SystemStateWidget(QtGui.QWidget):
 
         self.isAlert = False
 
-        self.ga1_state = SystemState(GA1_IMAGE)
-        self.sa1_state = SystemState(SA1_IMAGE)
-        self.sa2_state = SystemState(SA2_IMAGE)
+        self.ga1_state = SystemState(GA1_IMAGE, 1)
+        self.sa1_state = SystemState(SA1_IMAGE, 2)
+        self.sa2_state = SystemState(SA2_IMAGE, 3)
+
+        self.ga1_state.failureButton.clicked.connect(self.ga1_fail)
+        self.sa1_state.failureButton.clicked.connect(self.sa1_fail)
+        self.sa2_state.failureButton.clicked.connect(self.sa2_fail)
 
         self.systemStateLayout.addWidget(self.ga1_state)
         self.systemStateLayout.addWidget(self.sa1_state)
@@ -321,6 +339,31 @@ class SystemStateWidget(QtGui.QWidget):
 
     def sa2_update(self, text):
         self.sa2_state.updateText(text)
+
+    def ga1_fail(self):
+        self.sa1_state.detectFailure(1)
+        self.ga1_state.setImage(GA1_FAIL)
+        self.ga1_state.updateText("Shut Down")
+        self.ga1_state.bbinfo.updateRed()
+        self.ga1_state.bbinfo.isRunning = False
+        self.ga1_state.failureButton.setText("Restart")
+
+    def sa1_fail(self):
+        self.sa2_state.detectFailure(2)
+        self.sa1_state.setImage(SA1_FAIL)
+        self.sa1_state.updateText("Shut Down")
+        self.sa1_state.bbinfo.updateRed()
+        self.sa1_state.bbinfo.isRunning = False
+        self.sa1_state.failureButton.setText("Restart")
+
+
+    def sa2_fail(self):
+        self.ga1_state.detectFailure(3)
+        self.sa2_state.setImage(SA2_FAIL)
+        self.sa2_state.updateText("Shut Down")
+        self.sa2_state.bbinfo.updateRed()
+        self.sa2_state.bbinfo.isRunning = False
+        self.sa2_state.failureButton.setText("Restart")
 
 
 
@@ -386,7 +429,7 @@ class GraphWidget(QtGui.QWidget):
         self.tickList = [(x, x) for x in range(0, 500, 200)]
 
         self.normalPlot = self.pg_win.addPlot(title = "Wind Power Generation")
-        self.normalCurve = self.normalPlot.plot(pen = pg.mkPen('r', width = 3))
+        self.normalCurve = self.normalPlot.plot(pen = pg.mkPen('y', width = 3))
         self.normalPlot.setYRange(50, 100, padding = 0, update = False)
         self.normalPlot.setLabel("left", "Power Generation", units = "MW")
         self.normalPlot.setLabel("bottom", "Time", units = "ms")
@@ -395,13 +438,15 @@ class GraphWidget(QtGui.QWidget):
 
         self.rasPlot.getAxis('bottom').setTicks([self.tickList])
 
-        self.rasCurve = self.rasPlot.plot(pen = pg.mkPen('b', width = 3))
+        self.rasCurve = self.rasPlot.plot(pen = pg.mkPen('y', width = 3))
         self.rasPlot.setYRange(0, 50, padding = 0.1, update = False)
-        self.rasPlot.setLabel("left", "Frequency", units = "Hz")
+        self.rasPlot.setLabel("left", "Line Flow", units = "MW")
         self.rasPlot.setLabel("bottom", "Time", units = "ms")
 
         self.overloadCurve = pg.PlotCurveItem([OVERLOAD_LIMIT for x in range(self.plotSize)])
+        self.overloadCurve.setPen(pg.mkPen('r', style = QtCore.Qt.DashLine, width = 4))
         self.rasPlot.addItem(self.overloadCurve)
+        
 
 
         self.horizontalLayout.addWidget(self.w1)
