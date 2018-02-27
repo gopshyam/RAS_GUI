@@ -1,0 +1,57 @@
+app DemoRASApplication {
+	message TempPG;
+	message RTDSCommands;
+	message KeepAlive;
+    library Arpa_demo_nodes;
+
+    component RasGui {
+	    timer clock 1000; //Defines how often keepalive messages are sent
+		sub providermsg: TempPG;
+		pub resultready: RTDSCommands;
+	}
+
+	component Leader {
+		timer clock 1000; //Defines how often keepalive messages are sent
+		sub providermsg: TempPG;
+		pub resultready: RTDSCommands;
+		pub backuplink: KeepAlive;
+	}
+	
+	component Backup {
+		timer clock 2000; //How often keepalive messages are checked.
+		sub providermsg: TempPG;
+		pub resultready: RTDSCommands;
+		sub leadermsg: KeepAlive;
+	}
+	
+	component RTDSDataProvider {
+		timer clock 7000;
+		sub commandmsg: RTDSCommands;
+		pub tempport: TempPG;
+	}
+
+    actor Gui {
+        {
+            rasGui: RasGui;
+        }
+    }
+	
+	actor DataProvider {
+		{
+			dataprovider: RTDSDataProvider;
+		}
+	}
+	
+	actor LeaderNode {
+		{
+			leader: Leader;
+		}
+	}
+	
+	actor BackupNode {
+		{
+			backup: Backup;
+		}
+	}
+}
+	
