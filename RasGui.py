@@ -341,29 +341,51 @@ class SystemStateWidget(QtGui.QWidget):
         self.sa2_state.updateText(text)
 
     def ga1_fail(self):
-        self.sa1_state.detectFailure(1)
-        self.ga1_state.setImage(GA1_FAIL)
-        self.ga1_state.updateText("Shut Down")
-        self.ga1_state.bbinfo.updateRed()
-        self.ga1_state.bbinfo.isRunning = False
-        self.ga1_state.failureButton.setText("Restart")
+        if self.ga1_state.bbinfo.isRunning:
+            self.sa1_state.detectFailure(1)
+            self.ga1_state.setImage(GA1_FAIL)
+            self.ga1_state.updateText("Shut Down")
+            self.ga1_state.bbinfo.updateRed()
+            self.ga1_state.bbinfo.isRunning = False
+            self.ga1_state.failureButton.setText("Restart")
+        else:
+            self.ga1_state.setImage(GA1_IMAGE)
+            self.ga1_state.updateText("Resumed Operation")
+            self.ga1_state.bbinfo.updateGreen()
+            self.ga1_state.bbinfo.isRunning = True
+            self.ga1_state.failureButton.setText("Shut Down")
 
     def sa1_fail(self):
-        self.sa2_state.detectFailure(2)
-        self.sa1_state.setImage(SA1_FAIL)
-        self.sa1_state.updateText("Shut Down")
-        self.sa1_state.bbinfo.updateRed()
-        self.sa1_state.bbinfo.isRunning = False
-        self.sa1_state.failureButton.setText("Restart")
+        if self.sa1_state.bbinfo.isRunning:
+            self.sa2_state.detectFailure(2)
+            self.sa1_state.setImage(SA1_FAIL)
+            self.sa1_state.updateText("Shut Down")
+            self.sa1_state.bbinfo.updateRed()
+            self.sa1_state.bbinfo.isRunning = False
+            self.sa1_state.failureButton.setText("Restart")
+        else:
+            self.sa1_state.setImage(SA1_IMAGE)
+            self.sa1_state.updateText("Resumed Operation")
+            self.sa1_state.bbinfo.updateGreen()
+            self.sa1_state.bbinfo.isRunning = True
+            self.sa1_state.failureButton.setText("Shut Down")
 
 
     def sa2_fail(self):
-        self.ga1_state.detectFailure(3)
-        self.sa2_state.setImage(SA2_FAIL)
-        self.sa2_state.updateText("Shut Down")
-        self.sa2_state.bbinfo.updateRed()
-        self.sa2_state.bbinfo.isRunning = False
-        self.sa2_state.failureButton.setText("Restart")
+        if self.sa2_state.bbinfo.isRunning:
+            self.ga1_state.detectFailure(3)
+            self.sa2_state.setImage(SA2_FAIL)
+            self.sa2_state.updateText("Shut Down")
+            self.sa2_state.bbinfo.updateRed()
+            self.sa2_state.bbinfo.isRunning = False
+            self.sa2_state.failureButton.setText("Restart")
+        else:
+            self.sa2_state.setImage(SA2_IMAGE)
+            self.sa2_state.updateText("Resumed Operation")
+            self.sa2_state.bbinfo.updateGreen()
+            self.sa2_state.bbinfo.isRunning = True
+            self.sa2_state.failurebutton.setText("Shut Down")
+
 
 
 
@@ -573,12 +595,12 @@ class DemoWindow(QtGui.QWidget):
         self.logoLabel = QtGui.QLabel(self)
         self.logoLabel.setPixmap(self.logoPixmap.scaledToWidth(self.frameGeometry().width() * 1.6))
 
-        self.screenPixmap = QtGui.QPixmap(SCREENSHOT)
-        self.screenLabel = QtGui.QLabel(self)
-        self.screenLabel.setPixmap(self.screenPixmap.scaledToWidth(600))
+        #self.screenPixmap = QtGui.QPixmap(SCREENSHOT)
+        #self.screenLabel = QtGui.QLabel(self)
+        #self.screenLabel.setPixmap(self.screenPixmap.scaledToWidth(600))
 
         self.logoLayout.addWidget(self.logoLabel)
-        self.logoLayout.addWidget(self.screenLabel)
+        #self.logoLayout.addWidget(self.screenLabel)
 
         self.verticalLayout.addLayout(self.logoLayout)
 
@@ -598,7 +620,7 @@ class RasGui(Component):
     def on_providermsg(self):
         pg_value = self.providermsg.recv_pyobj()
         print("Received " + str(pg_value))
-        self.w.graph.dataGenerator.set_pg(pg_value)
+        self.w.graph.dataGenerator.set_pg(pg_value[2])
 
     def start_gui(self):
         self.app = QtGui.QApplication(sys.argv)

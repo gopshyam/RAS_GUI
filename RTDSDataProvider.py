@@ -31,7 +31,7 @@ class RTDSDataProvider(Component):
     def on_clock(self):
         time = self.clock.recv_pyobj()
         #msg = self.get_meter_values()
-        msg = self.value
+        msg = [100, 35, self.value, 45]
         self.logger.info("sending %s", str(msg))
         self.tempport.send_pyobj(msg)
         if self.value >= 97.0:
