@@ -149,13 +149,19 @@
                 "reqs":{},
                 "srvs":{},
                 "subs":{
+                    "commandmsg":{
+                        "type":"RTDSCommands"
+                    },
+                    "leadermsg":{
+                        "type":"KeepAlive"
+                    },
                     "providermsg":{
                         "type":"TempPG"
                     }
                 },
                 "tims":{
                     "clock":{
-                        "period":1000
+                        "period":7000
                     }
                 }
             }

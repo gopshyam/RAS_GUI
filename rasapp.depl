@@ -1,4 +1,4 @@
 app DemoRASApplication {
-    on (10.0.2.15) Gui;
-    on (10.0.2.15) DataProvider;
+    on (192.168.1.151) Gui;
+    on (192.168.1.151) DataProvider;
 }

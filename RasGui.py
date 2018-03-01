@@ -93,6 +93,7 @@ class DataGenerator():
         self.isContingency = False
         self.pg_value = 60
         self.char = 'R'
+        self.heartbeat = [1,2,3]
 
         self.socket_thread = threading.Thread(target = self.get_data)
         #self.socket_thread.start()
@@ -123,7 +124,7 @@ class DataGenerator():
 
     def get(self):
         normalReading = self.pg_value
-        rasReading = (self.pg_value / 2) - 10
+        rasReading = (self.pg_value / 2) - 13
 
         if (self.isContingency):
             normalReading = self.pg_value#self.normalReadings[self.index]
@@ -143,7 +144,8 @@ class DataGenerator():
         else:
             self.char = 'R'
 
-
+    def get_heartbeat(self):
+        return self.heartbeat
 
 class SpeedButton(QtGui.QWidget):
     def __init__(self, dataGenerator, parent=None):
@@ -167,8 +169,8 @@ class SpeedButton(QtGui.QWidget):
         self.zoomButton = QtGui.QPushButton("Zoom Out", self)
 
         self.textbox = QtGui.QLineEdit(self)
-        self.textbox.setText('0.6')
-        self.textButton = QtGui.QPushButton("Set Slider", self)
+        self.textbox.setText('0.85')
+        self.textButton = QtGui.QPushButton("Set Wind Power", self)
         #self.textButton.clicked.connect(self.setSlider)
 
         '''self.sb1 = QtGui.QRadioButton("x1")
@@ -348,12 +350,15 @@ class SystemStateWidget(QtGui.QWidget):
             self.ga1_state.bbinfo.updateRed()
             self.ga1_state.bbinfo.isRunning = False
             self.ga1_state.failureButton.setText("Restart")
+            self.parent().dataGenerator.heartbeat[0] = 0
         else:
             self.ga1_state.setImage(GA1_IMAGE)
             self.ga1_state.updateText("Resumed Operation")
             self.ga1_state.bbinfo.updateGreen()
             self.ga1_state.bbinfo.isRunning = True
             self.ga1_state.failureButton.setText("Shut Down")
+            self.parent().dataGenerator.heartbeat[0] = 1
+
 
     def sa1_fail(self):
         if self.sa1_state.bbinfo.isRunning:
@@ -363,12 +368,16 @@ class SystemStateWidget(QtGui.QWidget):
             self.sa1_state.bbinfo.updateRed()
             self.sa1_state.bbinfo.isRunning = False
             self.sa1_state.failureButton.setText("Restart")
+            self.parent().dataGenerator.heartbeat[1] = 0
         else:
             self.sa1_state.setImage(SA1_IMAGE)
             self.sa1_state.updateText("Resumed Operation")
             self.sa1_state.bbinfo.updateGreen()
             self.sa1_state.bbinfo.isRunning = True
             self.sa1_state.failureButton.setText("Shut Down")
+            self.parent().dataGenerator.heartbeat[1] = 2
+
+ 
 
 
     def sa2_fail(self):
@@ -379,12 +388,14 @@ class SystemStateWidget(QtGui.QWidget):
             self.sa2_state.bbinfo.updateRed()
             self.sa2_state.bbinfo.isRunning = False
             self.sa2_state.failureButton.setText("Restart")
+            self.parent().dataGenerator.heartbeat[2] = 0
         else:
             self.sa2_state.setImage(SA2_IMAGE)
             self.sa2_state.updateText("Resumed Operation")
             self.sa2_state.bbinfo.updateGreen()
             self.sa2_state.bbinfo.isRunning = True
-            self.sa2_state.failurebutton.setText("Shut Down")
+            self.sa2_state.failureButton.setText("Shut Down")
+            self.parent().dataGenerator.heartbeat[2] = 2
 
 
 
@@ -421,12 +432,17 @@ class GraphWidget(QtGui.QWidget):
 
         self.pg_win = pg.GraphicsWindow(title="Power Generation")
         self.lf_win = pg.GraphicsWindow(title="Line Flow")
+        self.heartbeat_win = pg.GraphicsWindow(title = "Heartbeat messages")
         #self.update()
 
         #self.w1.slider.valueChanged.connect(self.setInterval)
 
         self.normalReadings = [60.0 for _ in range(PLOT_SIZE)]
         self.rasReadings = [30.0 for _ in range(PLOT_SIZE)]
+        self.node1hb = [1 for _ in range(PLOT_SIZE)]
+        self.node2hb = [2 for _ in range(PLOT_SIZE)]
+        self.node3hb = [3 for _ in range(PLOT_SIZE)]
+
 
 
         #Print the difference between times and see if there's any hope, or else take the average of times
@@ -441,6 +457,7 @@ class GraphWidget(QtGui.QWidget):
         self.graphLayout = QtGui.QVBoxLayout()
         self.graphLayout.addWidget(self.pg_win)
         self.graphLayout.addWidget(self.lf_win)
+        self.graphLayout.addWidget(self.heartbeat_win)
 
         self.horizontalLayout.addLayout(self.graphLayout)
 
@@ -452,7 +469,7 @@ class GraphWidget(QtGui.QWidget):
 
         self.normalPlot = self.pg_win.addPlot(title = "Wind Power Generation")
         self.normalCurve = self.normalPlot.plot(pen = pg.mkPen('y', width = 3))
-        self.normalPlot.setYRange(50, 100, padding = 0, update = False)
+        self.normalPlot.setYRange(50, 120, padding = 0, update = False)
         self.normalPlot.setLabel("left", "Power Generation", units = "MW")
         self.normalPlot.setLabel("bottom", "Time", units = "ms")
 
@@ -468,6 +485,15 @@ class GraphWidget(QtGui.QWidget):
         self.overloadCurve = pg.PlotCurveItem([OVERLOAD_LIMIT for x in range(self.plotSize)])
         self.overloadCurve.setPen(pg.mkPen('r', style = QtCore.Qt.DashLine, width = 4))
         self.rasPlot.addItem(self.overloadCurve)
+
+
+        self.heartbeatPlot = self.heartbeat_win.addPlot(title = "Heartbeat Messages")
+        self.heartbeatPlot.setYRange(0,4)
+        self.heartbeatPlot.setLabel("bottom", "Time", units = "ms")
+        
+        self.node1Curve = self.heartbeatPlot.plot(pen = pg.mkPen('r', width = 3))
+        self.node2Curve = self.heartbeatPlot.plot(pen = pg.mkPen('g', width = 3))
+        self.node3Curve = self.heartbeatPlot.plot(pen = pg.mkPen('b', width = 3))
         
 
 
@@ -498,6 +524,16 @@ class GraphWidget(QtGui.QWidget):
         self.overloadCurve.setData([OVERLOAD_LIMIT for x in range(self.plotSize)])
 
 
+        #HEARTBEAT
+        hb1, hb2, hb3 = self.dataGenerator.get_heartbeat()
+        self.node1hb.append(hb1)
+        self.node2hb.append(hb2)
+        self.node3hb.append(hb3)
+        self.node1Curve.setData(self.node1hb[-self.plotSize:])
+        self.node2Curve.setData(self.node2hb[-self.plotSize:])
+        self.node3Curve.setData(self.node3hb[-self.plotSize:])
+
+
 
         self.rangeStart = self.rangeStart + 1
         self.rangeEnd = self.rangeEnd + 1
@@ -513,6 +549,7 @@ class GraphWidget(QtGui.QWidget):
 
         self.rasPlot.getAxis('bottom').setTicks([tickList])
         self.normalPlot.getAxis('bottom').setTicks([tickList])
+        self.heartbeatPlot.getAxis('bottom').setTicks([tickList])
 
         #self.rasPlot.setXRange(self.rangeStart, self.rangeEnd)
 
@@ -537,7 +574,7 @@ class GraphWidget(QtGui.QWidget):
                 self.state = GA_CUT_STATE
                 self.delay_count = 250
 
-                self.systemStateLayout.sa2_update("Curtailing Wind\nPower to " + str(self.dataGenerator.pg_value) + "%")
+                self.systemStateLayout.sa2_update("Curtailing Wind\nPower to " + str(self.dataGenerator.pg_value)[:5] + "MW")
 
         if self.state == GA_CUT_STATE:
             self.delay_count -= 1
@@ -611,16 +648,27 @@ class RasGui(Component):
         t = threading.Thread(target = self.start_gui)
         t.daemon = True
         t.start()
+        self.set = 0
         print("GUI INIT")
 
     def on_clock(self):
         msg = self.clock.recv_pyobj()
+        print("CLOCK " + str(self.set))
+        self.set += 1
+        if self.set == 2:
+            self.setSlider()
 
 
     def on_providermsg(self):
         pg_value = self.providermsg.recv_pyobj()
         print("Received " + str(pg_value))
         self.w.graph.dataGenerator.set_pg(pg_value[2])
+
+    def on_commandmsg(self):
+        curtailment_value = self.commandmsg.recv_pyobj()
+        print("Received Curtailment Value")
+        self.w.graph.dataGenerator.set_pg(curtailment_value * 100)
+
 
     def start_gui(self):
         self.app = QtGui.QApplication(sys.argv)
@@ -632,8 +680,7 @@ class RasGui(Component):
     def setSlider(self):
         slider_str = self.w.graph.w1.textbox.text()
         try:
-            slider_value = float(slider_str) * 100
-            self.resultready.send_pyobj(slider_value)
+            self.resultready.send_pyobj(float(slider_str))
         except ValueError:
             print("Could not convert to float")
 

@@ -5,9 +5,11 @@ app DemoRASApplication {
     library Arpa_demo_nodes;
 
     component RasGui {
-	    timer clock 1000; //Defines how often keepalive messages are sent
+	    timer clock 7000; //Defines how often keepalive messages are sent
 		sub providermsg: TempPG;
 		pub resultready: RTDSCommands;
+        sub leadermsg: KeepAlive;
+        sub commandmsg: RTDSCommands;
 	}
 
 	component Leader {
